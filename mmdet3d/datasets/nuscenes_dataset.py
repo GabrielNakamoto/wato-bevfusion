@@ -215,8 +215,8 @@ class NuScenesDataset(Custom3DDataset):
             lidar_path=info["lidar_path"],
             sweeps=info["sweeps"],
             timestamp=info["timestamp"],
-            location=info.get('location', None), 
-            radar=info.get('radars', None), 
+            location=info.get('location', None),
+            radar=info.get('radars', None),
         )
 
         if data['location'] is None:
@@ -259,7 +259,9 @@ class NuScenesDataset(Custom3DDataset):
 
                 # camera intrinsics
                 camera_intrinsics = np.eye(4).astype(np.float32)
-                camera_intrinsics[:3, :3] = camera_info["cam_intrinsic"]
+                # handle both key names (different nuscenes-devkit versions)
+                cam_intr_key = "cam_intrinsic" if "cam_intrinsic" in camera_info else "camera_intrinsics"
+                camera_intrinsics[:3, :3] = camera_info[cam_intr_key]
                 data["camera_intrinsics"].append(camera_intrinsics)
 
                 # lidar to image transform
@@ -300,10 +302,26 @@ class NuScenesDataset(Custom3DDataset):
         """
         info = self.data_infos[index]
         # filter out bbox containing no points
-        if self.use_valid_flag:
-            mask = info["valid_flag"]
+        if 'valid_flag' in info and self.use_valid_flag:
+            mask = info['valid_flag']
+        elif 'num_lidar_pts' in info:
+            mask = info['num_lidar_pts'] > 0
         else:
-            mask = info["num_lidar_pts"] > 0
+            # test data without annotations
+            gt_bboxes_3d = np.zeros((0, 9), dtype=np.float32)
+            gt_names_3d = np.array([], dtype=np.str_)
+            gt_labels_3d = np.array([], dtype=np.int64)
+            if self.with_velocity:
+                gt_bboxes_3d = np.zeros((0, 11), dtype=np.float32)
+            gt_bboxes_3d = LiDARInstance3DBoxes(
+                gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], origin=(0.5, 0.5, 0)
+            ).convert_to(self.box_mode_3d)
+            anns_results = dict(
+                gt_bboxes_3d=gt_bboxes_3d,
+                gt_labels_3d=gt_labels_3d,
+                gt_names=gt_names_3d,
+            )
+            return anns_results
         gt_bboxes_3d = info["gt_boxes"][mask]
         gt_names_3d = info["gt_names"][mask]
         gt_labels_3d = []

@@ -8,12 +8,34 @@ RUN apt-get install openmpi-bin openmpi-common libopenmpi-dev libgtk2.0-dev git 
 
 # Install miniconda
 ENV CONDA_DIR /opt/conda
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
-     /bin/bash ~/miniconda.sh -b -p /opt/conda
-# Put conda in path so we can use conda activate
-ENV PATH=$CONDA_DIR/bin:$PATH
-RUN conda install python=3.8
-RUN conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch
+
+RUN wget --quiet \
+    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    -O /tmp/miniconda.sh && \
+    /bin/bash /tmp/miniconda.sh -b -p /opt/conda && \
+    rm /tmp/miniconda.sh
+
+ENV PATH=/opt/conda/bin:$PATH
+
+RUN conda tos accept --override-channels \
+    --channel https://repo.anaconda.com/pkgs/main
+RUN conda tos accept --override-channels \
+    --channel https://repo.anaconda.com/pkgs/r
+
+RUN conda create -y -n bevfusion python=3.8 pip && \
+    conda clean -afy
+
+ENV PATH=/opt/conda/envs/bevfusion/bin:/opt/conda/bin:$PATH
+
+RUN conda install -y -n bevfusion \
+    pytorch==1.10.1 \
+    torchvision==0.11.2 \
+    torchaudio==0.10.1 \
+    cudatoolkit=11.3 \
+    -c pytorch
+
+RUN python --version
+
 RUN pip install Pillow==8.4.0
 RUN pip install tqdm
 RUN pip install torchpack
