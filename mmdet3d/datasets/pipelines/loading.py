@@ -260,7 +260,12 @@ class LoadBEVSegmentation:
 
         self.maps = {}
         for location in LOCATIONS:
-            self.maps[location] = NuScenesMap(dataset_root, location)
+            expansion = os.path.join(dataset_root, "maps", "expansion", location + ".json")
+            if os.path.exists(expansion):
+                self.maps[location] = NuScenesMap(dataset_root, location)
+            else:
+                print(f"LoadBEVSegmentation: {expansion} missing; using zero BEV masks")
+                self.maps[location] = None
 
     def __call__(self, data: Dict[str, Any]) -> Dict[str, Any]:
         lidar2point = data["lidar_aug_matrix"]
@@ -292,22 +297,23 @@ class LoadBEVSegmentation:
         layer_names = list(set(layer_names))
 
         location = data["location"]
-        masks = self.maps[location].get_map_mask(
-            patch_box=patch_box,
-            patch_angle=patch_angle,
-            layer_names=layer_names,
-            canvas_size=self.canvas_size,
-        )
-        # masks = masks[:, ::-1, :].copy()
-        masks = masks.transpose(0, 2, 1)
-        masks = masks.astype(np.bool)
-
         num_classes = len(self.classes)
-        labels = np.zeros((num_classes, *self.canvas_size), dtype=np.long)
-        for k, name in enumerate(self.classes):
-            for layer_name in mappings[name]:
-                index = layer_names.index(layer_name)
-                labels[k, masks[index]] = 1
+        labels = np.zeros((num_classes, *self.canvas_size), dtype=np.int64)
+        if self.maps.get(location) is not None:
+            masks = self.maps[location].get_map_mask(
+                patch_box=patch_box,
+                patch_angle=patch_angle,
+                layer_names=layer_names,
+                canvas_size=self.canvas_size,
+            )
+            # masks = masks[:, ::-1, :].copy()
+            masks = masks.transpose(0, 2, 1)
+            masks = masks.astype(bool)
+
+            for k, name in enumerate(self.classes):
+                for layer_name in mappings[name]:
+                    index = layer_names.index(layer_name)
+                    labels[k, masks[index]] = 1
 
         data["gt_masks_bev"] = labels
         return data
