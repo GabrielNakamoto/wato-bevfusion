@@ -3,7 +3,7 @@ FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV FORCE_CUDA=1
 ENV TORCH_CUDA_ARCH_LIST="8.0;8.6"
-ENV MAX_JOBS=2
+ENV MAX_JOBS=1
 
 # 1) System packages + Python 3.8 (native on Ubuntu 20.04)
 RUN apt-get update && \
