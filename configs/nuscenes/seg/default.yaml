@@ -11,3 +11,4 @@ model:
         output_scope: [[-50, 50, 0.5], [-50, 50, 0.5]]
       classes: ${map_classes}
       loss: focal
+      threshold: 0.5
