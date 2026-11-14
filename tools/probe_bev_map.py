@@ -5,7 +5,7 @@ Two questions that decide how much of the thin-class gap is learnable:
 
 ``balance``
     What fraction of the 200x200 map is positive per class? Feeds the loss
-    class weights (``w_c = clamp((median/pos_share)^0.5, 0.5, 3.0)``).
+    class weights (``w_c = clamp(median/pos_share, 0.5, 20)``).
 
 ``ceiling``
     How stable is the 0.5 m raster under a finer rendering? Renders at 0.25 m,
@@ -93,7 +93,7 @@ def main():
             "positive_share": dict(zip(MAP_CLASSES, share.tolist())),
         }
         median = float(np.median(share[share > 0])) if np.any(share > 0) else 1.0
-        weights = np.clip((median / np.maximum(share, 1e-9)) ** 0.5, 0.5, 3.0)
+        weights = np.clip(median / np.maximum(share, 1e-9), 0.5, 20.0)
         result["suggested_class_weights"] = dict(zip(MAP_CLASSES, weights.tolist()))
     else:
         fine = LoadBEVSegmentation(

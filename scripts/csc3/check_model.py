@@ -104,7 +104,7 @@ def main():
         ]
         assert not missing, f"head params without grad: {missing[:3]}"
         grad_params = sum(1 for p in model.parameters() if p.grad is not None)
-        print(f"  head loss {float(loss):.4f}  head params with grad {grad_params}")
+        print(f"  head loss {float(loss.detach()):.4f}  head params with grad {grad_params}")
         optimizer.zero_grad(set_to_none=True)
 
         runner = FakeRunner(model, optimizer, epoch=int(stage["until_epoch"]) - 1)

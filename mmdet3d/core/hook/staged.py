@@ -78,7 +78,9 @@ class StagedTrainableHook(LrUpdaterHook):
             return 1.0
         start = self._stage_start(index)
         span = max(1, int(stage["until_epoch"]) - start)
-        progress = (runner.epoch - start + 1) / span
+        # Full lr on the first epoch of the stage, ~0 on the last: never exactly
+        # zero, otherwise the final epoch of every stage trains at lr=0.
+        progress = (runner.epoch - start) / span
         progress = min(1.0, max(0.0, progress))
         return 0.5 * (1.0 + math.cos(math.pi * progress))
 

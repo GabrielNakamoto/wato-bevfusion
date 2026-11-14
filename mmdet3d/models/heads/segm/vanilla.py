@@ -130,6 +130,7 @@ class BEVSegmentationHead(nn.Module):
         alpha: float = -1.0,
         dice_weight: float = 0.0,
         normalize_by_positives: bool = False,
+        normalize_cap: float = 10.0,
         hi_res: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__()
@@ -140,6 +141,7 @@ class BEVSegmentationHead(nn.Module):
         self.alpha = float(alpha)
         self.dice_weight = float(dice_weight)
         self.normalize_by_positives = bool(normalize_by_positives)
+        self.normalize_cap = float(normalize_cap)
 
         if class_weights is None:
             self.register_buffer("class_weight_tensor", torch.zeros(0))
@@ -209,7 +211,12 @@ class BEVSegmentationHead(nn.Module):
             raise ValueError(f"unsupported loss: {self.loss}")
 
         if self.normalize_by_positives:
-            loss = raw.sum() / target.sum().clamp(min=1.0)
+            # Divide by positives *instead of* pixels. The scale then depends on
+            # N_pixels / N_pos, so it is bounded: unbounded normalisation makes
+            # stop_line ~400x louder than drivable and blows up fp16.
+            n_pos = target.sum().clamp(min=1.0)
+            scale = (target.numel() / n_pos).clamp(max=self.normalize_cap)
+            loss = raw.mean() * scale
         else:
             loss = raw.mean()
 

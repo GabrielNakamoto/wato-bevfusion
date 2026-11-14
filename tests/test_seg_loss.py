@@ -45,21 +45,16 @@ def test_focal_is_lower_for_correct_predictions():
     assert head._class_loss(good, target) < head._class_loss(bad, target)
 
 
-def test_positive_normalisation_ignores_map_size():
-    """Same positives, larger map: the normalised loss must not collapse."""
-    head = make_head(normalize_by_positives=True)
-    torch.manual_seed(0)
-    small = torch.zeros(1, 100, 100)
-    small[0, 40:60, 40:60] = 1
+def test_positive_normalisation_respects_cap():
+    head = make_head(normalize_by_positives=True, normalize_cap=7.0)
+    target = torch.zeros(1, 100, 100)
+    target[0, 10:12, 10:12] = 1  # 4 positives -> raw ratio 2500, capped at 7
     logits = torch.randn(1, 100, 100)
-    small_loss = head._class_loss(logits, small)
-
-    big = torch.zeros(1, 400, 400)
-    big[0, 40:60, 40:60] = 1
-    big_logits = torch.nn.functional.pad(logits, (0, 300, 0, 300))
-    big_loss = head._class_loss(big_logits, big)
-    # padding adds only negatives; mean-over-pixels would shrink by ~16x
-    assert big_loss > 0.5 * small_loss
+    raw = sigmoid_focal_loss(logits, target, gamma=2.0, reduction="none")
+    expected = raw.mean() * 7.0
+    assert float(head._class_loss(logits, target)) == pytest.approx(
+        float(expected), rel=1e-5
+    )
 
 
 def test_class_weights_scale_loss():

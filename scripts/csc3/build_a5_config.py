@@ -101,7 +101,9 @@ def main():
     model["training_stages"] = copy.deepcopy(STAGES)
 
     seg = model["heads"]["map"]
-    seg["normalize_by_positives"] = True
+    # Pixel-mean focal + inverse-share class weights is algebraically the same
+    # rebalancing as positive normalisation, with a bounded loss scale.
+    seg["normalize_by_positives"] = False
     seg["dice_weight"] = 0.5
     seg["gamma"] = 2.0
     seg["alpha"] = -1.0
