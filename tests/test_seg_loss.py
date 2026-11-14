@@ -70,7 +70,7 @@ def test_class_weights_scale_loss():
     logits = torch.randn(1, 2, 100, 100)
     plain_loss = plain._class_loss(logits[:, 1], target[:, 1], index=1)
     weighted_loss = weighted._class_loss(logits[:, 1], target[:, 1], index=1)
-    assert weighted_loss == pytest.approx(2.0 * plain_loss, rel=1e-5)
+    assert float(weighted_loss) == pytest.approx(2.0 * float(plain_loss), rel=1e-5)
 
 
 def test_dice_rewards_overlap():
