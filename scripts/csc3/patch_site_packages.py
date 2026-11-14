@@ -56,19 +56,38 @@ def patch_nuscenes(source: str) -> str:
 
 
 def patch_mmcv_logger(source: str) -> str:
-    pattern = re.compile(
-        r"f'data_time: \{data_time:\.3f\}, '\s*\n(\s*)f'memory: \{memory\}, '"
+    # Two layouts exist in the wild for the same bug.
+    replacements = (
+        (
+            'f\'data_time: {log_dict["data_time"]:.3f}, \'',
+            'f\'data_time: {log_dict.get("data_time", 0.0):.3f}, \'',
+        ),
+        (
+            'f\'memory: {log_dict["memory"]}, \'',
+            'f\'memory: {log_dict.get("memory", 0)}, \'',
+        ),
     )
+    patched = source
+    for old, new in replacements:
+        if old in patched:
+            patched = patched.replace(old, new)
 
-    def repl(match):
-        indent = match.group(1)
-        return (
-            'f\'data_time: {log_dict.get("data_time", 0.0):.3f}, \'\n'
-            + indent
-            + 'f\'memory: {log_dict.get("memory", 0)}, \''
+    if patched == source:
+        # Older layout: bare locals instead of log_dict lookups.
+        pattern = re.compile(
+            r"f'data_time: \{data_time:\.3f\}, '\s*\n(\s*)f'memory: \{memory\}, '"
         )
 
-    return pattern.sub(repl, source, count=1)
+        def repl(match):
+            indent = match.group(1)
+            return (
+                'f\'data_time: {log_dict.get("data_time", 0.0):.3f}, \'\n'
+                + indent
+                + 'f\'memory: {log_dict.get("memory", 0)}, \''
+            )
+
+        patched = pattern.sub(repl, patched, count=1)
+    return patched
 
 
 def patch_mmdet_ddp(source: str) -> str:
