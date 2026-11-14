@@ -34,6 +34,15 @@ DET_CHAIN = [
 ]
 
 
+def plain(value):
+    """PyYAML cannot represent dict subclasses (mmcv Config) directly."""
+    if isinstance(value, dict):
+        return {str(key): plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [plain(item) for item in value]
+    return value
+
+
 def build(chain, out):
     # torchpack's `configs` is a process-global; reload from scratch each time.
     configs.clear()
@@ -49,7 +58,7 @@ def build(chain, out):
     cfg.pop("runner", None)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as handle:
-        yaml.safe_dump(cfg, handle, sort_keys=True, default_flow_style=False)
+        yaml.safe_dump(plain(cfg), handle, sort_keys=True, default_flow_style=False)
     print(f"wrote {out}")
     print("  image_size:", cfg.model.encoders.camera.vtransform.image_size)
     print("  point_cloud_range:", cfg.point_cloud_range, "voxel:", cfg.voxel_size)
