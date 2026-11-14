@@ -40,7 +40,7 @@ log "create_data (infos + dbinfos, max_sweeps=10)"
   --root-path "$DATA" \
   --out-dir "$DATA" \
   --extra-tag nuscenes \
-  --version v1.0-trainval \
+  --version v1.0 \
   --max-sweeps 10 \
   --workers "$WORKERS"
 
