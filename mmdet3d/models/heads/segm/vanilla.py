@@ -192,21 +192,34 @@ class BEVSegmentationHead(nn.Module):
             nn.Conv2d(in_channels, len(classes), 1),
         )
 
-    def _class_loss(self, logit: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def _class_loss(
+        self,
+        logit: torch.Tensor,
+        target: torch.Tensor,
+        index: Optional[int] = None,
+    ) -> torch.Tensor:
         target = target.to(dtype=logit.dtype)
         if self.loss == "xent":
             raw = sigmoid_xent_loss(logit, target, reduction="none")
-            if self.normalize_by_positives:
-                return raw.sum() / target.sum().clamp(min=1.0)
-            return raw.mean()
-        if self.loss == "focal":
+        elif self.loss == "focal":
             raw = sigmoid_focal_loss(
                 logit, target, alpha=self.alpha, gamma=self.gamma, reduction="none"
             )
-            if self.normalize_by_positives:
-                return raw.sum() / target.sum().clamp(min=1.0)
-            return raw.mean()
-        raise ValueError(f"unsupported loss: {self.loss}")
+        else:
+            raise ValueError(f"unsupported loss: {self.loss}")
+
+        if self.normalize_by_positives:
+            loss = raw.sum() / target.sum().clamp(min=1.0)
+        else:
+            loss = raw.mean()
+
+        if self.dice_weight > 0:
+            loss = loss + self.dice_weight * soft_dice_loss(
+                torch.sigmoid(logit), target
+            ).mean()
+        if index is not None and self.use_class_weights:
+            loss = loss * self.class_weight_tensor[index].to(loss.dtype)
+        return loss
 
     def forward(
         self,
@@ -231,14 +244,7 @@ class BEVSegmentationHead(nn.Module):
             num_classes = len(self.classes)
             losses = {}
             for index, name in enumerate(self.classes):
-                loss = self._class_loss(x[:, index], target[:, index])
-                if self.dice_weight > 0:
-                    dice = soft_dice_loss(
-                        torch.sigmoid(x[:, index]), target[:, index]
-                    ).mean()
-                    loss = loss + self.dice_weight * dice
-                if self.use_class_weights:
-                    loss = loss * self.class_weight_tensor[index].to(loss.dtype)
+                loss = self._class_loss(x[:, index], target[:, index], index=index)
                 losses[f"{name}/{self.loss}"] = loss / num_classes
             return losses
         else:

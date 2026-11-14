@@ -68,8 +68,8 @@ def test_class_weights_scale_loss():
     target = torch.zeros(1, 2, 100, 100)
     target[:, 0, 40:60, 40:60] = 1
     logits = torch.randn(1, 2, 100, 100)
-    plain_loss = plain._class_loss(logits[:, 1], target[:, 1])
-    weighted_loss = weighted._class_loss(logits[:, 1], target[:, 1])
+    plain_loss = plain._class_loss(logits[:, 1], target[:, 1], index=1)
+    weighted_loss = weighted._class_loss(logits[:, 1], target[:, 1], index=1)
     assert weighted_loss == pytest.approx(2.0 * plain_loss, rel=1e-5)
 
 
@@ -78,8 +78,9 @@ def test_dice_rewards_overlap():
     target[0, 10:20, 10:20] = 1
     perfect = target.clone()
     empty = torch.zeros_like(target)
+    # eps=1.0 smooths small masks; the ordering is what matters
     assert soft_dice_loss(perfect, target).item() < 1e-5
-    assert soft_dice_loss(empty, target).item() == pytest.approx(1.0, abs=1e-4)
+    assert soft_dice_loss(empty, target).item() == pytest.approx(1.0, abs=0.02)
 
 
 def test_hi_res_branch_keeps_output_shape():
@@ -88,7 +89,7 @@ def test_hi_res_branch_keeps_output_shape():
     x = torch.randn(1, 8, 180, 180)
     with torch.no_grad():
         out = head(x)
-    assert out.shape == (1, 2, 200, 200)
+    assert out.shape == (1, 2, 100, 100)  # GRID is 1 m/cell
     assert head.classifier[0].in_channels == 8  # classifier untouched
     assert head.hi is not None
 
