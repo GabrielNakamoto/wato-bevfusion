@@ -5,6 +5,25 @@ from setuptools import find_packages, setup
 from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension
 
 
+def cuda_gencodes():
+    """Honour TORCH_CUDA_ARCH_LIST instead of a hardcoded arch list.
+
+    The upstream setup.py pins sm_70/75/80/86, which silently produces an
+    extension that cannot run on sm_89 (4090) or sm_120 (Blackwell). Default to
+    the upstream list only when the environment does not ask for anything.
+    """
+    archs = os.environ.get("TORCH_CUDA_ARCH_LIST", "")
+    archs = [item.strip() for item in archs.replace(";", " ").split() if item.strip()]
+    if not archs:
+        archs = ["7.0", "7.5", "8.0", "8.6"]
+    flags = []
+    for arch in archs:
+        arch = arch.split("+")[0]
+        major, minor = arch.split(".")[:2]
+        flags.append(f"-gencode=arch=compute_{major}{minor},code=sm_{major}{minor}")
+    return flags
+
+
 def make_cuda_ext(
     name, module, sources, sources_cuda=[], extra_args=[], extra_include_path=[]
 ):
@@ -19,11 +38,7 @@ def make_cuda_ext(
             "-D__CUDA_NO_HALF_OPERATORS__",
             "-D__CUDA_NO_HALF_CONVERSIONS__",
             "-D__CUDA_NO_HALF2_OPERATORS__",
-            "-gencode=arch=compute_70,code=sm_70",
-            "-gencode=arch=compute_75,code=sm_75",
-            "-gencode=arch=compute_80,code=sm_80",
-            "-gencode=arch=compute_86,code=sm_86",
-        ]
+        ] + cuda_gencodes()
         sources += sources_cuda
     elif (torch.cuda.is_available() and torch.version.hip is not None) or os.getenv("FORCE_ROCM", "0") == 1:
         define_macros += [("WITH_ROCM", None)]
