@@ -63,8 +63,13 @@ def param_group_name(qualified_name: str) -> str:
     return "other"
 
 
+def _trainable_candidates(module: nn.Module):
+    """Only floating point tensors can require gradients (vtransform.nx is int64)."""
+    return ((name, param) for name, param in module.named_parameters() if param.is_floating_point())
+
+
 def freeze_all(module: nn.Module) -> None:
-    for param in module.parameters():
+    for _, param in _trainable_candidates(module):
         param.requires_grad_(False)
 
 
@@ -74,7 +79,7 @@ def set_trainable(module: nn.Module, specs: Sequence[str]) -> None:
     if not specs:
         return
     specs = tuple(specs)
-    for name, param in module.named_parameters():
+    for name, param in _trainable_candidates(module):
         if any(module_matches(name, spec) for spec in specs):
             param.requires_grad_(True)
 
@@ -92,7 +97,7 @@ def set_bn_eval(module: nn.Module, specs: Sequence[str]) -> None:
 
 def trainable_parameter_counts(module: nn.Module) -> Dict[str, int]:
     counts = {name: 0 for name in GROUP_ORDER}
-    for name, param in module.named_parameters():
+    for name, param in _trainable_candidates(module):
         if param.requires_grad:
             counts[param_group_name(name)] += param.numel()
     return {k: v for k, v in counts.items() if v}
@@ -112,7 +117,7 @@ def build_param_groups(
     """
     lr_mults = lr_mults or {}
     buckets: Dict[str, List[nn.Parameter]] = {name: [] for name in GROUP_ORDER}
-    for name, param in module.named_parameters():
+    for name, param in _trainable_candidates(module):
         buckets[param_group_name(name)].append(param)
 
     groups = []
@@ -149,7 +154,7 @@ def sanity_check_groups(module: nn.Module, optimizer) -> None:
             seen[id(param)] = group.get("name")
     missing = [
         name
-        for name, param in module.named_parameters()
+        for name, param in _trainable_candidates(module)
         if id(param) not in seen
     ]
     if missing:
