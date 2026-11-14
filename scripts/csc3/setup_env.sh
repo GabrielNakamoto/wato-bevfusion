@@ -64,7 +64,8 @@ ext() {
   export CC="$ENV/bin/x86_64-conda-linux-gnu-gcc"
   export CXX="$ENV/bin/x86_64-conda-linux-gnu-g++"
   export CUDAHOSTCXX="$CXX"
-  export CPATH="$("$PY" -c 'import torch, os; print(os.path.join(os.path.dirname(torch.__file__), "include"))')"
+  export CPATH="$ENV/targets/x86_64-linux/include:$("$PY" -c 'import torch, os; print(os.path.join(os.path.dirname(torch.__file__), "include"))')"
+  export LIBRARY_PATH="$ENV/targets/x86_64-linux/lib:${LIBRARY_PATH:-}"
   export LD_LIBRARY_PATH="$ENV/lib:${LD_LIBRARY_PATH:-}"
 
   cd "$REPO"
