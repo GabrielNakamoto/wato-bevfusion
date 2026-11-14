@@ -14,6 +14,7 @@ from mmdet3d.models.builder import (
 )
 from mmdet3d.ops import Voxelization, DynamicScatter
 from mmdet3d.models import FUSIONMODELS
+from mmdet3d.models.utils import set_bn_eval, set_trainable, trainable_parameter_counts
 
 
 from .base import Base3DFusionModel
@@ -97,6 +98,36 @@ class BEVFusion(Base3DFusionModel):
 
 
         self.init_weights()
+
+        # Multi-stage fine-tuning. The first stage is applied at construction so
+        # that the very first forward pass already respects the freeze policy;
+        # the staged lr hook re-applies later stages at epoch boundaries.
+        self.training_stages = kwargs.get("training_stages", None)
+        self._stage = None
+        if self.training_stages:
+            self.set_stage(self.training_stages[0])
+
+    def set_stage(self, stage: Dict[str, Any]) -> None:
+        """Apply one training stage: trainable set + frozen BatchNorm stats."""
+        self._stage = stage
+        self._apply_stage()
+
+    def _apply_stage(self) -> None:
+        if self._stage is None:
+            return
+        set_trainable(self, self._stage.get("trainable", []))
+        set_bn_eval(self, self._stage.get("bn_eval", []))
+
+    def train(self, mode: bool = True):
+        # nn.Module.train() re-enables BatchNorm updates across the whole tree,
+        # so the stage policy has to be re-applied on every epoch.
+        super().train(mode)
+        if mode:
+            self._apply_stage()
+        return self
+
+    def stage_summary(self) -> Dict[str, int]:
+        return trainable_parameter_counts(self)
 
     def init_weights(self) -> None:
         if "camera" in self.encoders:
