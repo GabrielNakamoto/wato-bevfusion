@@ -215,8 +215,11 @@ class NuScenesDataset(Custom3DDataset):
             lidar_path=info["lidar_path"],
             sweeps=info["sweeps"],
             timestamp=info["timestamp"],
-            location=info.get('location', None), 
-            radar=info.get('radars', None), 
+            location=info.get('location', None),
+            # Radar sweeps are carried in the infos by the BEVFusion-R converter
+            # even when the run is camera+LiDAR; only attach them when asked for,
+            # otherwise PointsRangeFilter calls RadarPoints methods on a dict.
+            radar=info.get('radars', None) if self.modality.get('use_radar') else None,
         )
 
         if data['location'] is None:

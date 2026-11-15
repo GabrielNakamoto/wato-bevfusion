@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/nuscenes")
     parser.add_argument("--version", default="v1.0-trainval")
+    parser.add_argument("--strip-radar", action="store_true")
     args = parser.parse_args()
 
     nusc = NuScenes(version=args.version, dataroot=args.data, verbose=False)
@@ -35,6 +36,8 @@ def main():
         infos = payload["infos"] if isinstance(payload, dict) else payload
         for info in infos:
             info["location"] = token_location[info["token"]]
+            if args.strip_radar:
+                info.pop("radars", None)
         with open(path, "wb") as handle:
             pickle.dump(payload, handle)
         counts = Counter(info["location"] for info in infos)
