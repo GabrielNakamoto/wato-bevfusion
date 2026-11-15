@@ -17,6 +17,8 @@ import os
 import warnings
 
 import torch
+
+import mmdet3d.compat  # noqa: F401  (torch 2.9 parallel stream shim)
 from mmcv import Config
 from mmcv.parallel import MMDataParallel
 from mmcv.runner import load_checkpoint
@@ -107,7 +109,7 @@ def main():
     # the loader logs those itself.
     load_checkpoint(model, args.checkpoint, map_location="cpu")
 
-    model = MMDataParallel(model.cuda(), device_ids=[torch.device("cuda", 0)])
+    model = MMDataParallel(model.cuda(), device_ids=[0])
     model.eval()
     with torch.no_grad():
         results = single_gpu_test(model, loader, show=False, out_dir=None)

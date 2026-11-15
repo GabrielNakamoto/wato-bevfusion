@@ -1,4 +1,6 @@
 import torch
+
+import mmdet3d.compat  # noqa: F401  (torch 2.9 parallel stream shim)
 from mmcv.parallel import MMDistributedDataParallel
 from mmcv.runner import (
     DistSamplerSeedHook,
