@@ -24,6 +24,10 @@ class DepthLSSTransform(BaseDepthTransform):
         zbound: Tuple[float, float, float],
         dbound: Tuple[float, float, float],
         downsample: int = 1,
+        use_points: str = "lidar",
+        depth_input: str = "scalar",
+        height_expand: bool = True,
+        add_depth_features: bool = True,
     ) -> None:
         super().__init__(
             in_channels=in_channels,
@@ -34,6 +38,10 @@ class DepthLSSTransform(BaseDepthTransform):
             ybound=ybound,
             zbound=zbound,
             dbound=dbound,
+            use_points=use_points,
+            depth_input=depth_input,
+            height_expand=height_expand,
+            add_depth_features=add_depth_features,
         )
         self.dtransform = nn.Sequential(
             nn.Conv2d(1, 8, 1),
