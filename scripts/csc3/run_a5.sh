@@ -3,7 +3,14 @@
 #
 #   ./run_a5.sh                 # fresh run
 #   RUN=... ./run_a5.sh         # explicit run directory
+#   CONFIG=... ./run_a5.sh      # smoke or alternate config
 #   EXTRA="evaluation.interval=1" ./run_a5.sh
+#
+# Uses plain `mpiexec` rather than `torchpack dist-run`: torchpack passes
+# `--allow-run-as-root -bind-to none -map-by slot`, which OpenMPI 5 / PRRTE
+# rejects ("prterun interprets the first unrecognized command line token as the
+# executable"). torchpack only needs MASTER_HOST plus mpi4py ranks, both of
+# which this provides.
 set -euo pipefail
 
 ROOT="${ROOT:-/users/gnakamot/wato}"
@@ -12,6 +19,7 @@ REPO="${REPO:-$ROOT/repo/wato-bevfusion}"
 CONFIG="${CONFIG:-configs/nuscenes/seg/resnet50_dualhead/a5_staged.yaml}"
 RUN="${RUN:-$ROOT/runs/a5_$(date +%Y%m%d_%H%M)}"
 EXTRA="${EXTRA:-}"
+NP="${NP:-2}"
 
 mkdir -p "$RUN"
 cd "$REPO"
@@ -21,13 +29,17 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1}"
 export PYTHONPATH="$PWD"
 export OMPI_MCA_btl_vader_single_copy_mechanism=none
 export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
+export MASTER_HOST="localhost:$(python3 -c 'import socket;s=socket.socket();s.bind(("",0));print(s.getsockname()[1]);s.close()')"
 
-echo "run dir: $RUN"
-echo "config:  $CONFIG"
-echo "cuda:    $CUDA_VISIBLE_DEVICES"
+echo "run dir:  $RUN"
+echo "config:   $CONFIG"
+echo "devices:  $CUDA_VISIBLE_DEVICES"
+echo "master:   $MASTER_HOST"
 
-nohup "$ENV/bin/torchpack" dist-run -np 2 "$ENV/bin/python" tools/train.py \
-  "$CONFIG" --run-dir "$RUN" $EXTRA \
+nohup mpiexec -np "$NP" \
+  -x MASTER_HOST -x PYTHONPATH -x CUDA_VISIBLE_DEVICES -x NCCL_DEBUG \
+  -x OMPI_MCA_btl_vader_single_copy_mechanism \
+  "$ENV/bin/python" tools/train.py "$CONFIG" --run-dir "$RUN" $EXTRA \
   > "$RUN/train.log" 2>&1 &
 
 echo "pid $!"
