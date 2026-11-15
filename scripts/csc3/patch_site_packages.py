@@ -90,6 +90,22 @@ def patch_mmcv_logger(source: str) -> str:
     return patched
 
 
+def patch_mmdet_focal(source: str) -> str:
+    """Fall back to the pure-torch focal loss when mmcv was built without ops."""
+    old = """    loss = _sigmoid_focal_loss(pred.contiguous(), target.contiguous(), gamma,
+                               alpha, None, 'none')"""
+    new = """    try:
+        loss = _sigmoid_focal_loss(pred.contiguous(), target.contiguous(), gamma,
+                                   alpha, None, 'none')
+    except NotImplementedError:
+        # mmcv built with MMCV_WITH_OPS=0: use the pure-torch implementation.
+        loss = py_sigmoid_focal_loss(pred, target, gamma=gamma, alpha=alpha,
+                                     reduction='none')"""
+    if old not in source:
+        return source
+    return source.replace(old, new, 1)
+
+
 def patch_mmdet_ddp(source: str) -> str:
     pattern = re.compile(
         r"(?P<ind>[ \t]*)result = model\(return_loss=False, rescale=True, \*\*data\)"
@@ -129,6 +145,12 @@ def main() -> None:
         patch_mmcv_logger,
         marker='log_dict.get("data_time"',
         name="mmcv TextLoggerHook data_time",
+    )
+    patch(
+        os.path.join(packages, "mmdet", "models", "losses", "focal_loss.py"),
+        patch_mmdet_focal,
+        marker="mmcv built with MMCV_WITH_OPS=0",
+        name="mmdet focal loss pure-torch fallback",
     )
     patch(
         os.path.join(packages, "mmdet", "apis", "test.py"),
