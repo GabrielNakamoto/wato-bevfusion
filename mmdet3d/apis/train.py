@@ -45,6 +45,23 @@ def _install_sync_params_shim() -> None:
     MMDistributedDataParallel._sync_params = _sync_params_compat
 
 
+def build_lr_hook(lr_cfg):
+    """Allow a custom hook dict (``type: StagedTrainableHook``) in lr_config.
+
+    mmcv's ``register_lr_hook`` only accepts lr *policies* as dicts and asserts a
+    ``policy`` key. A dict naming a registered hook has to be built into an
+    instance before being handed to ``register_training_hooks``.
+    """
+    if not isinstance(lr_cfg, dict):
+        return lr_cfg
+    if "policy" in lr_cfg or "type" not in lr_cfg:
+        return lr_cfg
+    from mmcv.runner import HOOKS
+    from mmcv.utils import build_from_cfg
+
+    return build_from_cfg(lr_cfg, HOOKS)
+
+
 def build_staged_optimizer(module, optimizer_cfg):
     """AdamW over named parameter groups, one group per model region."""
     opt_type = str(optimizer_cfg.get("type", "AdamW")).lower()
@@ -156,7 +173,7 @@ def train_model(
 
     # register hooks
     runner.register_training_hooks(
-        cfg.lr_config,
+        build_lr_hook(cfg.get("lr_config", None)),
         optimizer_config,
         cfg.checkpoint_config,
         cfg.log_config,
