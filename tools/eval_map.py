@@ -103,14 +103,9 @@ def main():
     if hasattr(dataset, "map_classes"):
         model.MAP_CLASSES = dataset.map_classes
 
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location="cpu")
-    missing = list(checkpoint["missing_keys"])
-    unexpected = list(checkpoint["unexpected_keys"])
-    print(f"checkpoint: missing={len(missing)} unexpected={len(unexpected)}")
-    if missing:
-        print("  missing (expected for a new branch):", missing[:8])
-    if unexpected:
-        print("  unexpected:", unexpected[:8])
+    # mmcv 1.4 returns the checkpoint dict, not a missing/unexpected report;
+    # the loader logs those itself.
+    load_checkpoint(model, args.checkpoint, map_location="cpu")
 
     model = MMDataParallel(model.cuda(), device_ids=[0])
     model.eval()
