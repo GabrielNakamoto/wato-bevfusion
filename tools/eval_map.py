@@ -107,7 +107,7 @@ def main():
     # the loader logs those itself.
     load_checkpoint(model, args.checkpoint, map_location="cpu")
 
-    model = MMDataParallel(model.cuda(), device_ids=[0])
+    model = MMDataParallel(model.cuda(), device_ids=[torch.device("cuda", 0)])
     model.eval()
     with torch.no_grad():
         results = single_gpu_test(model, loader, show=False, out_dir=None)
