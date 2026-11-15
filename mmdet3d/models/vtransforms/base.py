@@ -180,7 +180,7 @@ class BaseTransform(nn.Module):
         self,
         img,
         points,
-        radar, 
+        radar,
         camera2ego,
         lidar2ego,
         lidar2camera,
@@ -189,6 +189,7 @@ class BaseTransform(nn.Module):
         camera2lidar,
         img_aug_matrix,
         lidar_aug_matrix,
+        img_metas=None,
         **kwargs,
     ):
         rots = camera2ego[..., :3, :3]
