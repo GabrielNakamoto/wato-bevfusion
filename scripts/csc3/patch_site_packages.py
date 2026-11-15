@@ -106,6 +106,38 @@ def patch_mmdet_focal(source: str) -> str:
     return source.replace(old, new, 1)
 
 
+def patch_mmdet_focal_forward(source: str) -> str:
+    """Use mmdet's one-hot torch focal path on CUDA too.
+
+    On CUDA mmdet calls the compiled ``sigmoid_focal_loss`` with *class-index*
+    labels (the op one-hots internally). With MMCV_WITH_OPS=0 that op is a stub,
+    so route through the CPU path, which one-hots explicitly.
+    """
+    old = """            if self.activated:
+                calculate_loss_func = py_focal_loss_with_prob
+            else:
+                if torch.cuda.is_available() and pred.is_cuda:
+                    calculate_loss_func = sigmoid_focal_loss
+                else:
+                    num_classes = pred.size(1)
+                    target = F.one_hot(target, num_classes=num_classes + 1)
+                    target = target[:, :num_classes]
+                    calculate_loss_func = py_sigmoid_focal_loss"""
+    new = """            if self.activated:
+                calculate_loss_func = py_focal_loss_with_prob
+            else:
+                # mmcv compiled ops unavailable: one-hot and use the torch path
+                # regardless of device.
+                num_classes = pred.size(1)
+                if target.dim() == 1:
+                    target = F.one_hot(target.long(), num_classes=num_classes + 1)
+                    target = target[:, :num_classes]
+                calculate_loss_func = py_sigmoid_focal_loss"""
+    if old not in source:
+        return source
+    return source.replace(old, new, 1)
+
+
 def patch_mmdet_ddp(source: str) -> str:
     pattern = re.compile(
         r"(?P<ind>[ \t]*)result = model\(return_loss=False, rescale=True, \*\*data\)"
@@ -151,6 +183,12 @@ def main() -> None:
         patch_mmdet_focal,
         marker="mmcv built with MMCV_WITH_OPS=0",
         name="mmdet focal loss pure-torch fallback",
+    )
+    patch(
+        os.path.join(packages, "mmdet", "models", "losses", "focal_loss.py"),
+        patch_mmdet_focal_forward,
+        marker="one-hot and use the torch path",
+        name="mmdet FocalLoss one-hot on CUDA",
     )
     patch(
         os.path.join(packages, "mmdet", "apis", "test.py"),
