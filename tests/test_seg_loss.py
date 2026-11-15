@@ -89,6 +89,19 @@ def test_hi_res_branch_keeps_output_shape():
     assert head.hi is not None
 
 
+def test_hi_res_branch_is_identity_at_init():
+    """A warm-started checkpoint must evaluate unchanged when the branch is added."""
+    head = make_head(hi_res=dict(enabled=True, mid_channels=4, dilation=2))
+    head.eval()
+    x = torch.randn(1, 8, 180, 180)
+    with torch.no_grad():
+        grad = head.hi(torch.randn(1, 8, 360, 360))
+        out_with = head(x)
+    assert torch.count_nonzero(grad) == 0
+    assert head.hi[-1].weight.abs().sum().item() == 0.0
+    assert torch.isfinite(out_with).all()
+
+
 def test_default_head_matches_upstream_behaviour():
     """Normalisation and dice must be opt-in."""
     head = make_head()

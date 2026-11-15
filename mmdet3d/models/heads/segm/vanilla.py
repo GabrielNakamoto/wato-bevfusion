@@ -183,6 +183,12 @@ class BEVSegmentationHead(nn.Module):
                 nn.ReLU(True),
                 nn.Conv2d(mid, in_channels, 1),
             )
+            # Zero-init the residual so the branch is an identity at step 0:
+            # a warm-started checkpoint evaluates exactly as it did before the
+            # branch existed, and the branch grows from zero instead of adding
+            # random noise to the logits.
+            nn.init.zeros_(self.hi[-1].weight)
+            nn.init.zeros_(self.hi[-1].bias)
 
         self.classifier = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
