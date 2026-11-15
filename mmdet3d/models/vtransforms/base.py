@@ -134,7 +134,7 @@ class BaseTransform(nn.Module):
 
         return points
 
-    def get_cam_feats(self, x):
+    def get_cam_feats(self, x, mats_dict=None):
         raise NotImplementedError
 
     @force_fp32()
