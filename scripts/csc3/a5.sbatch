@@ -61,6 +61,7 @@ PY
 
   mpiexec --oversubscribe -np 2 \
     -x MASTER_HOST -x PYTHONPATH -x CUDA_VISIBLE_DEVICES -x NCCL_DEBUG \
+    -x CUDA_MPS_PIPE_DIRECTORY -x CUDA_MPS_LOG_DIRECTORY \
     -x OMPI_MCA_btl_vader_single_copy_mechanism \
     "$ENV/bin/python" tools/train.py "$config" --run-dir "$RUN" --no-validate
   rc=$?
