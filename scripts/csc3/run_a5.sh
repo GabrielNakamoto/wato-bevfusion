@@ -38,7 +38,7 @@ echo "config:   $CONFIG"
 echo "devices:  $CUDA_VISIBLE_DEVICES"
 echo "master:   $MASTER_HOST"
 
-nohup mpiexec -np "$NP" \
+setsid nohup mpiexec -np "$NP" \
   -x MASTER_HOST -x PYTHONPATH -x CUDA_VISIBLE_DEVICES -x NCCL_DEBUG \
   -x OMPI_MCA_btl_vader_single_copy_mechanism \
   "$ENV/bin/python" tools/train.py "$CONFIG" --run-dir "$RUN" $VALIDATE_FLAGS $EXTRA \
