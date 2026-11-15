@@ -35,7 +35,9 @@ DET_CHAIN = [
 
 
 def plain(value):
-    """PyYAML cannot represent dict subclasses (mmcv Config) directly."""
+    """PyYAML cannot represent mmcv Config / ConfigDict directly."""
+    if hasattr(value, "_cfg_dict"):
+        value = value._cfg_dict
     if isinstance(value, dict):
         return {str(key): plain(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
