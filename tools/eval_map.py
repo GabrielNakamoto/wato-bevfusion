@@ -24,6 +24,7 @@ from torchpack.utils.config import configs
 
 from mmdet.apis import single_gpu_test
 from mmdet.datasets import build_dataloader, build_dataset, replace_ImageToTensor
+import mmdet3d.datasets  # noqa: F401  (registers NuScenesDataset)
 from mmdet3d.models import build_model
 from mmdet3d.utils import recursive_eval
 
