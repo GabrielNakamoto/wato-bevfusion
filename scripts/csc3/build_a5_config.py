@@ -80,6 +80,31 @@ def parse_args():
     return parser.parse_args()
 
 
+def strip_remote_shard(cfg):
+    """The 2-GPU run config carries the remote-shard streaming transform; data is
+    staged locally now and the transform is not part of this branch."""
+
+    def clean(pipeline):
+        if not isinstance(pipeline, list):
+            return pipeline
+        return [
+            step
+            for step in pipeline
+            if not (isinstance(step, dict) and step.get("type") == "RemoteShardLoader")
+        ]
+
+    for key in ("train_pipeline", "test_pipeline"):
+        if key in cfg:
+            cfg[key] = clean(cfg[key])
+    for split in ("train", "val", "test"):
+        block = cfg.get("data", {}).get(split)
+        if isinstance(block, dict) and "pipeline" in block:
+            block["pipeline"] = clean(block["pipeline"])
+    if "pipeline" in cfg.get("evaluation", {}):
+        cfg["evaluation"]["pipeline"] = clean(cfg["evaluation"]["pipeline"])
+    return cfg
+
+
 def resolve_weights(args):
     if args.weights_json:
         payload = json.load(open(args.weights_json))
@@ -152,6 +177,8 @@ def main():
     # --- checkpointing ----------------------------------------------------
     cfg["load_from"] = args.load_from
     cfg["resume_from"] = None
+
+    strip_remote_shard(cfg)
 
     with open(args.out, "w") as handle:
         yaml.safe_dump(cfg, handle, sort_keys=True, default_flow_style=False)
