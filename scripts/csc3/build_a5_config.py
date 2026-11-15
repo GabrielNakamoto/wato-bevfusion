@@ -126,6 +126,15 @@ def main():
     model.pop("trainable_modules", None)
     model["training_stages"] = copy.deepcopy(STAGES)
 
+    # The fork defaults these to the BEVFusion-R variants (depth features from
+    # points + 8x height expansion). The checkpoint was trained with the
+    # standard DepthLSS path (dtransform.0 = Conv2d(1, 8, 1)), so pin them.
+    vtransform = model["encoders"]["camera"]["vtransform"]
+    vtransform["use_points"] = "lidar"
+    vtransform["depth_input"] = "scalar"
+    vtransform["add_depth_features"] = False
+    vtransform["height_expand"] = False
+
     seg = model["heads"]["map"]
     # Pixel-mean focal + inverse-share class weights is algebraically the same
     # rebalancing as positive normalisation, with a bounded loss scale.
