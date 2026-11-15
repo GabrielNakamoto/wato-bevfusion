@@ -178,9 +178,13 @@ def _fill_trainval_infos(nusc,
 
         mmcv.check_file_exist(lidar_path)
 
+        scene_rec = nusc.get('scene', sample['scene_token'])
+        log_rec = nusc.get('log', scene_rec['log_token'])
+
         info = {
             'lidar_path': lidar_path,
             'token': sample['token'],
+            'location': log_rec['location'],
             'sweeps': [],
             'cams': dict(),
             'radars': dict(), 
