@@ -8,7 +8,7 @@ Keeps the real model/pipeline/optimizer/stages but:
   * evaluates and checkpoints every epoch.
 
     python scripts/csc3/build_smoke_config.py \\
-        --base configs/nuscenes/seg/resnet50_dualhead/a5_staged.yaml \\
+        --base configs/dualhead/a5_staged.yaml \\
         --out configs/nuscenes/seg/resnet50_dualhead/a5_smoke.yaml
 """
 import argparse

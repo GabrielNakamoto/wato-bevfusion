@@ -16,7 +16,7 @@ set -euo pipefail
 ROOT="${ROOT:-/users/gnakamot/wato}"
 ENV="${ENV:-$ROOT/envs/bf}"
 REPO="${REPO:-$ROOT/repo/wato-bevfusion}"
-CONFIG="${CONFIG:-configs/nuscenes/seg/resnet50_dualhead/a5_staged.yaml}"
+CONFIG="${CONFIG:-configs/dualhead/a5_staged.yaml}"
 RUN="${RUN:-$ROOT/runs/a5_$(date +%Y%m%d_%H%M)}"
 EXTRA="${EXTRA:-}"
 NP="${NP:-2}"
