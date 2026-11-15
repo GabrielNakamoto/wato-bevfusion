@@ -257,6 +257,14 @@ class BEVFusion(Base3DFusionModel):
 
     #     return feats, coords, sizes
 
+    @staticmethod
+    def _unwrap(value):
+        # If DDP scatter leaves a DataContainer in place, unpack it here rather
+        # than crashing deep in the voxelizer.
+        if hasattr(value, "data") and value.__class__.__name__ == "DataContainer":
+            return value.data
+        return value
+
     @auto_fp16(apply_to=("img", "points"))
     def forward(
         self,
@@ -278,6 +286,13 @@ class BEVFusion(Base3DFusionModel):
         gt_labels_3d=None,
         **kwargs,
     ):
+        img = self._unwrap(img)
+        points = self._unwrap(points)
+        metas = self._unwrap(metas)
+        gt_masks_bev = self._unwrap(gt_masks_bev)
+        gt_bboxes_3d = self._unwrap(gt_bboxes_3d)
+        gt_labels_3d = self._unwrap(gt_labels_3d)
+
         if isinstance(img, list):
             raise NotImplementedError
         else:
