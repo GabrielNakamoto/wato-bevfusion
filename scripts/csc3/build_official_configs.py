@@ -67,6 +67,23 @@ def build(chain, out):
     print("  heads:", {k: (v is not None) for k, v in cfg.model.heads.items()})
 
 
+def build_det_resnet50(out):
+    """Det-only view of the A5 architecture (our released det checkpoint is ResNet50)."""
+    configs.clear()
+    configs.load("configs/nuscenes/seg/resnet50_dualhead/a5_staged.yaml", recursive=True)
+    cfg = Config(recursive_eval(configs))
+    cfg.model.heads.map = None
+    cfg.model.pop("training_stages", None)
+    cfg.load_from = None
+    for key in ("lr_config", "momentum_config", "runner", "optimizer", "optimizer_config"):
+        cfg.pop(key, None)
+    with open(out, "w") as handle:
+        yaml.safe_dump(plain(cfg), handle, sort_keys=True, default_flow_style=False)
+    print(f"wrote {out}")
+    print("  map head:", cfg.model.heads.map, "object head:", cfg.model.heads.object is not None)
+
+
 if __name__ == "__main__":
     build(SEG_CHAIN, "configs/nuscenes/seg/official/seg_check.yaml")
     build(DET_CHAIN, "configs/nuscenes/det/official/det_check.yaml")
+    build_det_resnet50("configs/nuscenes/det/official/det_resnet50_check.yaml")
