@@ -20,7 +20,8 @@ CONFIG="${CONFIG:-configs/dualhead/a5_staged.yaml}"
 RUN="${RUN:-$ROOT/runs/a5_$(date +%Y%m%d_%H%M)}"
 EXTRA="${EXTRA:-}"
 NP="${NP:-2}"
-VALIDATE="${VALIDATE:-}"
+VALIDATE_FLAGS="--no-validate"
+if [ "${VALIDATE:-0}" = "1" ]; then VALIDATE_FLAGS=""; fi
 
 mkdir -p "$RUN"
 cd "$REPO"
@@ -40,8 +41,7 @@ echo "master:   $MASTER_HOST"
 nohup mpiexec -np "$NP" \
   -x MASTER_HOST -x PYTHONPATH -x CUDA_VISIBLE_DEVICES -x NCCL_DEBUG \
   -x OMPI_MCA_btl_vader_single_copy_mechanism \
-  "$ENV/bin/python" tools/train.py "$CONFIG" --run-dir "$RUN" \
-  ${VALIDATE:+}${VALIDATE:-} ${NO_VALIDATE_DEFAULT:---no-validate} $EXTRA \
+  "$ENV/bin/python" tools/train.py "$CONFIG" --run-dir "$RUN" $VALIDATE_FLAGS $EXTRA \
   > "$RUN/train.log" 2>&1 &
 
 echo "pid $!"
