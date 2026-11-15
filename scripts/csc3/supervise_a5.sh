@@ -35,7 +35,7 @@ while true; do
     exit 0
   fi
 
-  if pgrep -f "tools/train.py $CONFIG" > /dev/null || pgrep -f "tools/train.py configs/dualhead" > /dev/null; then
+  if pgrep -f "tools/train.py.*$RUN" > /dev/null; then
     sleep "$SLEEP"
     continue
   fi
