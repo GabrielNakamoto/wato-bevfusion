@@ -85,7 +85,8 @@ def resolve_weights(args):
         payload = json.load(open(args.weights_json))
         suggested = payload["suggested_class_weights"]
         order = list(payload["positive_share"].keys())
-        return [round(float(suggested[name]), 4) for name in order], order
+        weights = [round(float(suggested[name]), 4) for name in order]
+        return weights, order
     return DEFAULT_WEIGHTS, None
 
 
