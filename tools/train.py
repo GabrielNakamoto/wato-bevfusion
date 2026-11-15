@@ -23,6 +23,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", metavar="FILE", help="config file")
     parser.add_argument("--run-dir", metavar="DIR", help="run directory")
+    parser.add_argument(
+        "--no-validate",
+        action="store_true",
+        help="disable in-training evaluation; evaluate checkpoints separately "
+        "with tools/eval_map.py (DDP eval needs a torch-version shim and is "
+        "better kept out of the training process)",
+    )
     args, opts = parser.parse_known_args()
 
     configs.load(args.config, recursive=True)
@@ -78,7 +85,7 @@ def main():
         datasets,
         cfg,
         distributed=True,
-        validate=True,
+        validate=not args.no_validate,
         timestamp=timestamp,
     )
 

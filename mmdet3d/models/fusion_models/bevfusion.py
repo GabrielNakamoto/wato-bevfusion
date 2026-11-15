@@ -286,17 +286,6 @@ class BEVFusion(Base3DFusionModel):
         gt_labels_3d=None,
         **kwargs,
     ):
-        if getattr(self, "_debug_once", False) is False:
-            self._debug_once = True
-            import sys
-            def _desc(value):
-                data = getattr(value, "data", None)
-                return (type(value).__name__, getattr(value, "shape", None),
-                        type(data).__name__, getattr(data, "shape", None))
-            print("[dbg] img", _desc(img), file=sys.stderr, flush=True)
-            print("[dbg] points", _desc(points), file=sys.stderr, flush=True)
-            print("[dbg] metas", type(metas).__name__, len(metas) if hasattr(metas, "__len__") else None, file=sys.stderr, flush=True)
-
         img = self._unwrap(img)
         points = self._unwrap(points)
         metas = self._unwrap(metas)
