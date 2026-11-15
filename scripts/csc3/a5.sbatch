@@ -59,7 +59,7 @@ PY
   export MASTER_HOST="localhost:$("$ENV/bin/python" -c 'import socket;s=socket.socket();s.bind(("",0));print(s.getsockname()[1]);s.close()')"
   echo "[sbatch] $(date '+%F %T') launching (config=$config master=$MASTER_HOST)"
 
-  mpiexec -np 2 \
+  mpiexec --oversubscribe -np 2 \
     -x MASTER_HOST -x PYTHONPATH -x CUDA_VISIBLE_DEVICES -x NCCL_DEBUG \
     -x OMPI_MCA_btl_vader_single_copy_mechanism \
     "$ENV/bin/python" tools/train.py "$config" --run-dir "$RUN" --no-validate
