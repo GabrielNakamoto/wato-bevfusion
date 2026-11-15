@@ -24,6 +24,7 @@ import pickle
 import numpy as np
 import torch
 import torch.nn.functional as F
+from pyquaternion import Quaternion
 
 from mmdet3d.datasets.pipelines.loading import LoadBEVSegmentation
 
@@ -53,9 +54,21 @@ def load_infos(path):
     return payload["infos"] if isinstance(payload, dict) else payload
 
 
+def _transform(translation, rotation):
+    matrix = np.eye(4, dtype=np.float64)
+    matrix[:3, :3] = Quaternion(rotation).rotation_matrix
+    matrix[:3, 3] = np.asarray(translation, dtype=np.float64)
+    return matrix
+
+
 def sample_input(info):
-    ego2global = np.array(info["ego2global"], dtype=np.float64)
-    lidar2ego = np.array(info["lidar2ego"], dtype=np.float64)
+    # Infos store flat translation/rotation pairs; the dataset builds the 4x4s.
+    if "ego2global" in info:
+        ego2global = np.array(info["ego2global"], dtype=np.float64)
+        lidar2ego = np.array(info["lidar2ego"], dtype=np.float64)
+    else:
+        ego2global = _transform(info["ego2global_translation"], info["ego2global_rotation"])
+        lidar2ego = _transform(info["lidar2ego_translation"], info["lidar2ego_rotation"])
     return {
         "lidar_aug_matrix": np.eye(4, dtype=np.float64),
         "lidar2ego": lidar2ego,
