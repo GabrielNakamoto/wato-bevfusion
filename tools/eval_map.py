@@ -85,10 +85,14 @@ def main():
         data_cfg.pipeline = replace_ImageToTensor(data_cfg.pipeline)
 
     dataset = build_dataset(data_cfg)
-    if args.max_samples:
-        dataset.data_infos = dataset.data_infos[: args.max_samples]
+    if args.max_samples and args.max_samples < len(dataset.data_infos):
+        # Stride, do not take a prefix: val infos are ordered by location/scene,
+        # so a prefix is a single city (measured: first 400 are all singapore-onenorth).
+        step = max(1, len(dataset.data_infos) // args.max_samples)
+        keep = list(range(0, len(dataset.data_infos), step))[: args.max_samples]
+        dataset.data_infos = [dataset.data_infos[i] for i in keep]
         if hasattr(dataset, "flag"):
-            dataset.flag = dataset.flag[: args.max_samples]
+            dataset.flag = dataset.flag[keep]
 
     workers = args.workers if args.workers is not None else cfg.data.get("workers_per_gpu", 4)
     loader = build_dataloader(
